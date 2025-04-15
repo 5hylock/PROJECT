@@ -11,9 +11,10 @@ export YARN_HOME=$HADOOP_HOME
 export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop 
 export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native 
 export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native" 
-export HADOOP_STREAMING=$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-3.>
+export HADOOP_STREAMING=$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-3.3.6.jar
 export HADOOP_LOG_DIR=$HADOOP_HOME/logs 
 export PDSH_RCMD_TYPE=ssh
+
 install hadoop from any browser
 3:move hadoop file from downloads to /home/ubuntu using mv frompath topath
 4:tar -zxvf hadoop-3.3.6.tar.gz
@@ -165,6 +166,11 @@ export PATH=$PATH:$PIG_HOME/bin
 export PIG_CLASSPATH=$HADOOP_HOME/etc/hadoop
 5: source ~/.bashrc
 6: pig - version
+5,6,7 
+1:echo -e "1,John,45000\n2,Alice,55000\n3,Bob,60000\n4,Mary,70000" > employees.txt
+2:hdfs dfs -mkdir /pigdata
+3:hdfs dfs -put employees.txt /pigdata/
+4: pig -x mapreduce
 9) INSTALLATION OF SPARK 
 1:sudo apt install scala -y
 2:wget https://downloads.apache.org/spark/spark-3.4.4/spark-3.4.4-bin-hadoop3.tgz
