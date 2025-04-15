@@ -1,0 +1,191 @@
+installation of hadoop
+1:sudo apt install openjdk-11-jdk -y 
+2: nano ~/.bashrc 
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 
+export PATH=$PATH:/usr/lib/jvm/java-11-openjdk-amd64/bin 
+export HADOOP_HOME=~/hadoop-3.3.6/ 
+export PATH=$PATH:$HADOOP_HOME/bin 
+export PATH=$PATH:$HADOOP_HOME/sbin 
+export HADOOP_MAPRED_HOME=$HADOOP_HOME 
+export YARN_HOME=$HADOOP_HOME 
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop 
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native 
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native" 
+export HADOOP_STREAMING=$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-3.>
+export HADOOP_LOG_DIR=$HADOOP_HOME/logs 
+export PDSH_RCMD_TYPE=ssh
+install hadoop from any browser
+3:move hadoop file from downloads to /home/ubuntu using mv frompath topath
+4:tar -zxvf hadoop-3.3.6.tar.gz
+5:sudo apt-get install ssh
+6:cd hadoop-3.3.6/etc/hadoop
+7:sudo nano hadoop-env.sh
+JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 (set the path for JAVA_HOME)
+8:nano core-site.xml
+<configuration> 
+ <property> 
+ <name>fs.defaultFS</name> 
+ <value>hdfs://localhost:9000</value>  </property> 
+ <property> 
+<name>hadoop.proxyuser.dataflair.groups</name> <value>*</value> 
+ </property> 
+ <property> 
+<name>hadoop.proxyuser.dataflair.hosts</name> <value>*</value> 
+ </property> 
+ <property> 
+<name>hadoop.proxyuser.server.hosts</name> <value>*</value> 
+ </property> 
+ <property> 
+<name>hadoop.proxyuser.server.groups</name> <value>*</value> 
+ </property> 
+</configuration>
+9:nano hdfs-sit.xml
+<configuration> 
+ <property> 
+ <name>dfs.replication</name> 
+ <value>1</value> 
+ </property> 
+</configuration>
+9:nano mapred-site.xml
+<configuration> 
+ <property> 
+ <name>mapreduce.framework.name</name>  <value>yarn</value> 
+ </property> 
+ <proper     
+ <name>mapreduce.application.classpath</name> 
+  
+<value>$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*</value> 
+ </property> 
+</configuration>
+10:nano  yarn-site.xml
+<configuration> 
+ <property> 
+ <name>yarn.nodemanager.aux-services</name> 
+ <value>mapreduce_shuffle</value> 
+ </property> 
+ <property> 
+ <name>yarn.nodemanager.env-whitelist</name> 
+  
+<value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREP END_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value> 
+ </property> 
+</configuration>
+11:ssh localhost 
+12:ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa 
+13:cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys 
+14:chmod 0600 ~/.ssh/authorized_keys 
+15:hadoop-3.2.3/bin/hdfs namenode -format
+16 export PDSH_RCMD_TYPE=ssh
+17:start-all.sh
+18:stop-all.sh
+2) data amnipulation
+hdfs dfs -mkdir /mydata
+ hdfs dfs -put code.txt /mydata
+ hdfs dfs -ls /mydata
+hdfs dfs -cat /mydata/code.txt
+hdfs dfs -rm /mydata/code.txt
+
+3) map reducer paradigm in hadoop
+nano WordCount.java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+mport org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import java.util.StringTokenizer;
+
+public class WordCount {
+
+  public static class TokenizerMapper
+       extends Mapper<Object, Text, Text, IntWritable>{
+
+    private final static IntWritable one = new IntWritable(1);
+    private Text word = new Text();
+
+    public void map(Object key, Text value, Context context
+                    ) throws IOException, InterruptedException {
+      StringTokenizer itr = new StringTokenizer(value.toString());
+      while (itr.hasMoreTokens()) {
+        word.set(itr.nextToken());
+        context.write(word, one);
+      }
+    }
+  }
+
+  public static class IntSumReducer
+       extends Reducer<Text,IntWritable,Text,IntWritable> {
+    private IntWritable result = new IntWritable();
+
+    public void reduce(Text key, Iterable<IntWritable> values,
+                       Context context
+                       ) throws IOException, InterruptedException {
+      int sum = 0;
+      for (IntWritable val : values) {
+        sum += val.get();
+      }
+      result.set(sum);
+      context.write(key, result);
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "word count");
+    job.setJarByClass(WordCount.class);
+    job.setMapperClass(TokenizerMapper.class);
+    job.setCombinerClass(IntSumReducer.class);
+    job.setReducerClass(IntSumReducer.class);
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(IntWritable.class);
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}
+1:export HADOOP_CLASSPATH=$(hadoop classpath)
+2: javac -classpath $HADOOP_CLASSPATH -d wordcount_classes WordCount.java
+3:jar -cvf wordcount.jar -C wordcount_classes/ .
+4:echo "hello world" > input.txt
+5: hdfs dfs -mkdir -p /user/ubuntu/input
+6: hdfs dfs -put input.txt /user/ubuntu/input
+7:hadoop jar wordcount.jar WordCount /user/ubuntu/input /user/ubuntu/output
+8:hdfs dfs -cat /user/ubuntu/output/part-r-00000
+4) installation and config of pig 
+
+1:install pig from browser
+2:extract file using tar -zxvf 
+3: sudo mv pig-0.17.0 /opt/pig
+4: nano ~/.bashrc
+export PIG_HOME=/opt/pig
+export PATH=$PATH:$PIG_HOME/bin
+export PIG_CLASSPATH=$HADOOP_HOME/etc/hadoop
+5: source ~/.bashrc
+6: pig - version
+9) INSTALLATION OF SPARK 
+1:sudo apt install scala -y
+2:wget https://downloads.apache.org/spark/spark-3.4.4/spark-3.4.4-bin-hadoop3.tgz
+3: tar -xvzf spark-3.4.4-bin-hadoop3.tgz
+4:sudo mv spark-3.4.4-bin-hadoop3 /opt/spark
+5:nano ~/.bashrc
+6:export SPARK_HOME=/opt/spark
+export HADOOP_HOME=/opt/spark
+export PATH=$PATH:$SPARK_HOME/bin:$HADOOP_HOME/bin
+7:source ~/.bashrc
+8:spark-shell
+9:ctrl+c
+10 exp
+:pyspark
+sc.pythonVer
+'3.12'
+>>> sc.master
+'local[*]'
+>>> my_list = range(1,10)
+>>> squared_list_lambda = list(map(lambda x: x**2, my_list))
+>>> print("the squared numbers are",squared_list_lambda)
+the squared numbers are [1, 4, 9, 16, 25, 36, 49, 64, 81]
+>>> 
+
